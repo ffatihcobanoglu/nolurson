@@ -1,22 +1,49 @@
 import { useState, useEffect } from 'react'
-import { Eye, Users, Shield, Check } from 'lucide-react'
+import { Eye, Users, Shield, Check, Crown, Radio } from 'lucide-react'
 import CategoryBadge from './CategoryBadge'
 import { supabase } from '../lib/supabase'
-import { CATEGORY_COLORS } from '../types'
-import type { Notification, NotificationSeen } from '../types'
+import { CATEGORY_COLORS, ROLE_COLORS } from '../types'
+import type { Notification, NotificationSeen, Role } from '../types'
 
 interface Props {
   notification: Notification
   viewerName: string
+  role: Role
   isTrusted: boolean
   isStreamer?: boolean
   onSeen?: (notifId: string) => void
   variant?: 'panel' | 'overlay'
 }
 
-export default function NotificationCard({ notification, viewerName, isTrusted, isStreamer = false, onSeen, variant = 'panel' }: Props) {
+const ROLE_ICONS: Record<Role, typeof Crown> = {
+  creator: Crown,
+  streamer: Radio,
+  moderator: Shield,
+}
+
+function SeenChip({ seen }: { seen: NotificationSeen }) {
+  const color = ROLE_COLORS[seen.viewer_role] || 'var(--text-2)'
+  const Icon = ROLE_ICONS[seen.viewer_role] || Eye
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '4px',
+      padding: '3px 8px',
+      background: `${color}15`,
+      borderRadius: '6px',
+      fontSize: '11px',
+      color,
+      fontWeight: 500,
+    }}>
+      <Icon size={10} />
+      {seen.viewer_name}
+    </div>
+  )
+}
+
+export default function NotificationCard({ notification, viewerName, role, isTrusted, isStreamer = false, onSeen, variant = 'panel' }: Props) {
   const [seens, setSeens] = useState<NotificationSeen[]>([])
   const [dismissed, setDismissed] = useState(notification.is_dismissed)
+  const [localSeen, setLocalSeen] = useState(false)
 
   useEffect(() => {
     async function loadSeens() {
@@ -41,7 +68,7 @@ export default function NotificationCard({ notification, viewerName, isTrusted, 
   }, [notification.id])
 
   async function handleSeen() {
-    if (dismissed) return
+    if (dismissed || localSeen) return
 
     const { data: existing } = await supabase
       .from('notification_seens')
@@ -50,13 +77,32 @@ export default function NotificationCard({ notification, viewerName, isTrusted, 
       .eq('viewer_name', viewerName)
       .maybeSingle()
 
-    if (existing) return
+    if (existing) {
+      setLocalSeen(true)
+      return
+    }
 
-    await supabase.from('notification_seens').insert({
+    const { error } = await supabase.from('notification_seens').insert({
       notification_id: notification.id,
       viewer_name: viewerName,
       is_trusted: isTrusted,
+      viewer_role: role,
     })
+
+    if (error) return
+
+    // Optimistic: add local seen chip immediately
+    const tempSeen: NotificationSeen = {
+      id: 'temp-' + Date.now(),
+      notification_id: notification.id,
+      viewer_name: viewerName,
+      viewer_avatar: null,
+      is_trusted: isTrusted,
+      viewer_role: role,
+      seen_at: new Date().toISOString(),
+    }
+    setSeens(prev => [tempSeen, ...prev])
+    setLocalSeen(true)
 
     if (isTrusted || isStreamer) {
       await supabase
@@ -73,6 +119,7 @@ export default function NotificationCard({ notification, viewerName, isTrusted, 
 
   const isOverlay = variant === 'overlay'
   const catColor = CATEGORY_COLORS[notification.category]
+  const hasSeen = localSeen || seens.some(s => s.viewer_name === viewerName)
 
   return (
     <div style={{
@@ -123,23 +170,24 @@ export default function NotificationCard({ notification, viewerName, isTrusted, 
         {!isOverlay && (
           <button
             onClick={handleSeen}
-            disabled={dismissed}
+            disabled={hasSeen}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '8px 14px',
-              background: dismissed ? 'var(--bg-3)' : 'var(--primary)',
-              color: dismissed ? 'var(--text-3)' : '#fff',
+              background: hasSeen ? `${ROLE_COLORS[role]}20` : 'var(--primary)',
+              color: hasSeen ? ROLE_COLORS[role] : '#fff',
               borderRadius: 'var(--radius-sm)',
               fontSize: '13px',
               fontWeight: 600,
               transition: 'var(--transition)',
               flexShrink: 0,
+              border: hasSeen ? `1px solid ${ROLE_COLORS[role]}40` : 'none',
             }}
-            onMouseEnter={(e) => { if (!dismissed) e.currentTarget.style.background = 'var(--primary-dark)' }}
-            onMouseLeave={(e) => { if (!dismissed) e.currentTarget.style.background = 'var(--primary)' }}
+            onMouseEnter={(e) => { if (!hasSeen) e.currentTarget.style.background = 'var(--primary-dark)' }}
+            onMouseLeave={(e) => { if (!hasSeen) e.currentTarget.style.background = 'var(--primary)' }}
           >
-            {dismissed ? <Check size={14} /> : <Eye size={14} />}
-            {dismissed ? 'Görüldü' : 'Gördüm'}
+            {hasSeen ? <Check size={14} /> : <Eye size={14} />}
+            {hasSeen ? 'Görüldü' : 'Gördüm'}
           </button>
         )}
       </div>
@@ -152,18 +200,7 @@ export default function NotificationCard({ notification, viewerName, isTrusted, 
           flexWrap: 'wrap',
         }}>
           {seens.map((seen) => (
-            <div key={seen.id} style={{
-              display: 'flex', alignItems: 'center', gap: '4px',
-              padding: '3px 8px',
-              background: seen.is_trusted ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-3)',
-              borderRadius: '6px',
-              fontSize: '11px',
-              color: seen.is_trusted ? 'var(--success)' : 'var(--text-2)',
-              fontWeight: 500,
-            }}>
-              {seen.is_trusted && <Shield size={10} />}
-              {seen.viewer_name}
-            </div>
+            <SeenChip key={seen.id} seen={seen} />
           ))}
         </div>
       )}

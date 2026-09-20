@@ -143,6 +143,7 @@ export default function ModPanel() {
               key={notif.id}
               notification={notif}
               viewerName={viewerName || 'Anonim'}
+              role={role}
               isTrusted={isTrusted || roleIsTrusted}
               isStreamer={isStreamer || roleIsStreamer}
             />

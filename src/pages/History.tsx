@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { History as HistoryIcon, Users, Shield } from 'lucide-react'
+import { History as HistoryIcon, Users, Shield, Crown, Radio, Eye } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import CategoryBadge from '../components/CategoryBadge'
+import { CATEGORY_COLORS, ROLE_COLORS, ROLE_LABELS } from '../types'
 import type { Stream, Notification, NotificationSeen, Role } from '../types'
+
+const ROLE_ICONS: Record<Role, typeof Crown> = {
+  creator: Crown,
+  streamer: Radio,
+  moderator: Shield,
+}
 
 export default function History() {
   const { stream, role } = useOutletContext<{ stream: Stream | null; role: Role }>()
@@ -65,12 +72,10 @@ export default function History() {
       <div style={{ marginBottom: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
           <HistoryIcon size={24} color="var(--primary)" />
-          <h1 style={{ fontSize: '28px', fontWeight: 800 }}>
-          {role === 'creator' ? 'Geçmiş Bildirimler' : 'Geçmiş Bildirimler'}
-        </h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 800 }}>Geçmiş Bildirimler</h1>
         </div>
         <p style={{ color: 'var(--text-2)', fontSize: '15px' }}>
-          "Gördüm" olarak işaretlenmiş bildirimler burada listelenir.
+          "Gördüm" olarak işaretlenmiş bildirimler burada listelenir. Kimin, hangi rolle işaretlediği sırayla gösterilir.
         </p>
       </div>
 
@@ -104,15 +109,16 @@ export default function History() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {notifications.map((notif) => {
             const seens = seensMap[notif.id] || []
+            const catColor = CATEGORY_COLORS[notif.category]
             return (
               <div
                 key={notif.id}
                 style={{
-                  background: 'var(--bg-1)',
-                  border: '1px solid var(--border)',
+                  background: `linear-gradient(135deg, ${catColor}0d, var(--bg-1))`,
+                  border: `1px solid ${catColor}33`,
                   borderRadius: 'var(--radius)',
                   padding: '16px',
-                  opacity: 0.85,
+                  borderLeft: `3px solid ${catColor}`,
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -166,20 +172,28 @@ export default function History() {
                     borderTop: '1px solid var(--border)',
                     flexWrap: 'wrap',
                   }}>
-                    {seens.map((seen) => (
-                      <div key={seen.id} style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '3px 8px',
-                        background: seen.is_trusted ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-3)',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        color: seen.is_trusted ? 'var(--success)' : 'var(--text-2)',
-                        fontWeight: 500,
-                      }}>
-                        {seen.is_trusted && <Shield size={10} />}
-                        {seen.viewer_name}
-                      </div>
-                    ))}
+                    {seens.map((seen, idx) => {
+                      const r = (seen.viewer_role || 'moderator') as Role
+                      const color = ROLE_COLORS[r]
+                      const Icon = ROLE_ICONS[r] || Eye
+                      return (
+                        <div key={seen.id} style={{
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          padding: '3px 8px',
+                          background: `${color}15`,
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          color,
+                          fontWeight: 500,
+                        }}>
+                          <span style={{ fontSize: '9px', color: 'var(--text-3)', fontWeight: 700 }}>
+                            {idx + 1}.
+                          </span>
+                          <Icon size={10} />
+                          {seen.viewer_name}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

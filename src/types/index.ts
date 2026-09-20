@@ -56,6 +56,7 @@ export interface NotificationSeen {
   viewer_name: string
   viewer_avatar: string | null
   is_trusted: boolean
+  viewer_role: Role
   seen_at: string
 }
 
@@ -105,4 +106,16 @@ export const CATEGORY_ICONS: Record<Category, string> = {
   request: 'MessageSquarePlus',
   question: 'HelpCircle',
   chat: 'MessageCircle',
+}
+
+export const ROLE_COLORS: Record<Role, string> = {
+  creator: '#f59e0b',
+  streamer: '#6366f1',
+  moderator: '#10b981',
+}
+
+export const ROLE_LABELS: Record<Role, string> = {
+  creator: 'Yaratıcı',
+  streamer: 'Yayıncı',
+  moderator: 'Moderatör',
 }
