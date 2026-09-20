@@ -70,7 +70,7 @@ export default function ModPanel() {
   }, [viewerName, trustedMods, streamerName])
 
   const roleIsStreamer = role === 'streamer' || role === 'creator'
-  const roleIsTrusted = role === 'moderator' || role === 'creator'
+  const roleIsTrusted = role === 'creator'
 
   if (!stream) return null
 
