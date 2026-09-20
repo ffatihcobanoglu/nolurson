@@ -3,10 +3,10 @@ import { useOutletContext } from 'react-router-dom'
 import { Radio, Eye, Shield, User, Crown } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import NotificationCard from '../components/NotificationCard'
-import type { Stream, Notification } from '../types'
+import type { Stream, Notification, Role } from '../types'
 
 export default function ModPanel() {
-  const { stream } = useOutletContext<{ stream: Stream | null }>()
+  const { stream, role } = useOutletContext<{ stream: Stream | null; role: Role }>()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [viewerName, setViewerName] = useState('')
   const [isTrusted, setIsTrusted] = useState(false)
@@ -69,6 +69,9 @@ export default function ModPanel() {
     }
   }, [viewerName, trustedMods, streamerName])
 
+  const roleIsStreamer = role === 'streamer' || role === 'creator'
+  const roleIsTrusted = role === 'moderator' || role === 'creator'
+
   if (!stream) return null
 
   return (
@@ -108,11 +111,11 @@ export default function ModPanel() {
             padding: '4px 10px',
             borderRadius: '6px',
             fontSize: '12px', fontWeight: 600,
-            background: isStreamer ? 'rgba(245, 158, 11, 0.15)' : isTrusted ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-3)',
-            color: isStreamer ? 'var(--warning)' : isTrusted ? 'var(--success)' : 'var(--text-2)',
+            background: (isStreamer || roleIsStreamer) ? 'rgba(245, 158, 11, 0.15)' : (isTrusted || roleIsTrusted) ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-3)',
+            color: (isStreamer || roleIsStreamer) ? 'var(--warning)' : (isTrusted || roleIsTrusted) ? 'var(--success)' : 'var(--text-2)',
           }}>
-            {isStreamer ? <Crown size={12} /> : isTrusted ? <Shield size={12} /> : <Eye size={12} />}
-            {isStreamer ? 'Yayıncı' : isTrusted ? 'Güvenilir Mod' : 'Normal Mod'}
+            {(isStreamer || roleIsStreamer) ? <Crown size={12} /> : (isTrusted || roleIsTrusted) ? <Shield size={12} /> : <Eye size={12} />}
+            {(isStreamer || roleIsStreamer) ? 'Yayıncı' : (isTrusted || roleIsTrusted) ? 'Güvenilir Mod' : 'Normal Mod'}
           </div>
         )}
       </div>
@@ -140,8 +143,8 @@ export default function ModPanel() {
               key={notif.id}
               notification={notif}
               viewerName={viewerName || 'Anonim'}
-              isTrusted={isTrusted}
-              isStreamer={isStreamer}
+              isTrusted={isTrusted || roleIsTrusted}
+              isStreamer={isStreamer || roleIsStreamer}
             />
           ))
         )}

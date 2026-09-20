@@ -3,10 +3,10 @@ import { useOutletContext } from 'react-router-dom'
 import { History as HistoryIcon, Users, Shield } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import CategoryBadge from '../components/CategoryBadge'
-import type { Stream, Notification, NotificationSeen } from '../types'
+import type { Stream, Notification, NotificationSeen, Role } from '../types'
 
 export default function History() {
-  const { stream } = useOutletContext<{ stream: Stream | null }>()
+  const { stream, role } = useOutletContext<{ stream: Stream | null; role: Role }>()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [seensMap, setSeensMap] = useState<Record<string, NotificationSeen[]>>({})
   const [loading, setLoading] = useState(true)
@@ -65,7 +65,9 @@ export default function History() {
       <div style={{ marginBottom: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
           <HistoryIcon size={24} color="var(--primary)" />
-          <h1 style={{ fontSize: '28px', fontWeight: 800 }}>Geçmiş Bildirimler</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 800 }}>
+          {role === 'creator' ? 'Geçmiş Bildirimler' : 'Geçmiş Bildirimler'}
+        </h1>
         </div>
         <p style={{ color: 'var(--text-2)', fontSize: '15px' }}>
           "Gördüm" olarak işaretlenmiş bildirimler burada listelenir.

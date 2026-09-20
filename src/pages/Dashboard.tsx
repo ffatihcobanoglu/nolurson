@@ -5,10 +5,10 @@ import { supabase } from '../lib/supabase'
 import CategoryBadge from '../components/CategoryBadge'
 import { CATEGORY_LABELS } from '../types'
 import { getSimulatorStats } from '../lib/mockChat'
-import type { Stream, Notification, TopicHistoryItem } from '../types'
+import type { Stream, Notification, TopicHistoryItem, Role } from '../types'
 
 export default function Dashboard() {
-  const { stream } = useOutletContext<{ stream: Stream | null }>()
+  const { stream, role } = useOutletContext<{ stream: Stream | null; role: Role }>()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [topicHistory, setTopicHistory] = useState<TopicHistoryItem[]>([])
   const [stats, setStats] = useState({ totalMessages: 0, activeClusters: 0, totalNotifications: 0, dismissedCount: 0 })
@@ -112,7 +112,9 @@ export default function Dashboard() {
   return (
     <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '6px' }}>Dashboard</h1>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '6px' }}>
+          {role === 'creator' ? 'Yaratıcı Paneli' : role === 'streamer' ? 'Yayıncı Paneli' : 'Dashboard'}
+        </h1>
         <p style={{ color: 'var(--text-2)', fontSize: '15px' }}>
           {stream.title} — {new Date(stream.started_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} tarihinden beri yayında
         </p>

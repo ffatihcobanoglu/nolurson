@@ -1,3 +1,5 @@
+export type Role = 'creator' | 'streamer' | 'moderator'
+
 export type ThresholdMode = 'fixed' | 'percentage'
 
 export type Category = 'complaint' | 'request' | 'question' | 'chat'

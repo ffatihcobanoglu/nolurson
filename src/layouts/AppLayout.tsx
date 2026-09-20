@@ -1,21 +1,55 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Radio, Settings as SettingsIcon, Activity, History as HistoryIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { LayoutDashboard, Radio, Settings as SettingsIcon, Activity, History as HistoryIcon, Crown, Shield, ChevronDown, LogOut } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Stream } from '../types'
+import type { Stream, Role } from '../types'
 import { startChatSimulator, stopChatSimulator } from '../lib/mockChat'
 import { startClusteringEngine } from '../lib/clustering'
 
-export default function AppLayout() {
+interface Props {
+  role: Role
+  onRoleChange: () => void
+}
+
+const ROLE_CONFIG: Record<Role, { label: string; icon: typeof Crown; color: string }> = {
+  creator: { label: 'Yaratıcı', icon: Crown, color: '#f59e0b' },
+  streamer: { label: 'Yayıncı', icon: Radio, color: '#6366f1' },
+  moderator: { label: 'Moderatör', icon: Shield, color: '#10b981' },
+}
+
+function getNavItems(role: Role) {
+  const base = [
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/mod', label: 'Moderatör Paneli', icon: Radio },
+    { to: '/history', label: 'Geçmiş', icon: HistoryIcon },
+  ]
+  if (role === 'creator') {
+    return [...base, { to: '/settings', label: 'Ayarlar', icon: SettingsIcon }]
+  }
+  return base
+}
+
+export default function AppLayout({ role, onRoleChange }: Props) {
   const location = useLocation()
   const [stream, setStream] = useState<Stream | null>(null)
   const [loading, setLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   useEffect(() => {
     let clusteringInterval: ReturnType<typeof setInterval> | null = null
 
     async function init() {
-      // Use .limit(1) + index instead of maybeSingle to avoid errors with multiple active streams
       const { data: activeStreams } = await supabase
         .from('streams')
         .select('*')
@@ -86,12 +120,9 @@ export default function AppLayout() {
     )
   }
 
-  const navItems = [
-    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/mod', label: 'Moderatör Paneli', icon: Radio },
-    { to: '/history', label: 'Geçmiş', icon: HistoryIcon },
-    { to: '/settings', label: 'Ayarlar', icon: SettingsIcon },
-  ]
+  const navItems = getNavItems(role)
+  const roleCfg = ROLE_CONFIG[role]
+  const RoleIcon = roleCfg.icon
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -180,10 +211,82 @@ export default function AppLayout() {
             </div>
           </div>
         )}
+
+        <div ref={menuRef} style={{ position: 'relative', padding: '8px 8px 12px' }}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 12px',
+              width: '100%',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border)',
+              transition: 'var(--transition)',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-light)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+          >
+            <div style={{
+              width: '28px', height: '28px', borderRadius: '8px',
+              background: `${roleCfg.color}1a`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <RoleIcon size={14} color={roleCfg.color} />
+            </div>
+            <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 700 }}>{roleCfg.label}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>Rol değiştir</div>
+            </div>
+            <ChevronDown size={14} color="var(--text-3)" style={{
+              transform: menuOpen ? 'rotate(180deg)' : 'none',
+              transition: 'var(--transition)',
+            }} />
+          </button>
+
+          {menuOpen && (
+            <div style={{
+              position: 'absolute',
+              bottom: '52px',
+              left: '8px',
+              right: '8px',
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: 'var(--shadow-lg)',
+              overflow: 'hidden',
+              animation: 'scaleIn 150ms ease-out',
+              zIndex: 100,
+            }}>
+              <button
+                onClick={onRoleChange}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px',
+                  width: '100%',
+                  color: 'var(--text-2)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  transition: 'var(--transition)',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-3)'; e.currentTarget.style.color = 'var(--error)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-2)' }}
+              >
+                <LogOut size={14} />
+                Rol Seçimine Dön
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
       <main style={{ flex: 1, overflow: 'auto', background: 'var(--bg-0)' }}>
-        <Outlet context={{ stream }} />
+        <Outlet context={{ stream, role }} />
       </main>
     </div>
   )
