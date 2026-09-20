@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Eye, Users, Shield, Check } from 'lucide-react'
 import CategoryBadge from './CategoryBadge'
 import { supabase } from '../lib/supabase'
+import { CATEGORY_COLORS } from '../types'
 import type { Notification, NotificationSeen } from '../types'
 
 interface Props {
@@ -71,17 +72,19 @@ export default function NotificationCard({ notification, viewerName, isTrusted, 
   if (dismissed && variant === 'panel') return null
 
   const isOverlay = variant === 'overlay'
+  const catColor = CATEGORY_COLORS[notification.category]
 
   return (
     <div style={{
-      background: isOverlay ? 'rgba(18, 20, 26, 0.92)' : 'var(--bg-2)',
-      border: `1px solid ${isOverlay ? 'rgba(255,255,255,0.08)' : 'var(--border)'}`,
+      background: isOverlay ? 'rgba(18, 20, 26, 0.92)' : `linear-gradient(135deg, ${catColor}0d, var(--bg-2))`,
+      border: `1px solid ${isOverlay ? 'rgba(255,255,255,0.08)' : `${catColor}33`}`,
       borderRadius: isOverlay ? '10px' : 'var(--radius)',
       padding: isOverlay ? '12px 14px' : '16px',
       animation: 'scaleIn 250ms ease-out',
       backdropFilter: isOverlay ? 'blur(8px)' : 'none',
       opacity: dismissed ? 0.5 : 1,
       transition: 'var(--transition)',
+      borderLeft: `3px solid ${catColor}`,
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
